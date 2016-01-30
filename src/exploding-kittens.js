@@ -44,15 +44,20 @@ class ExplodingKittens {
   //                    the end of one hand and the start of another
   //
   // Returns an {Observable} that signals completion of the game
-  start(playerDms, dealerButton=null, timeBetweenHands=5000) {
+  start(playerDms, initialPlayer=null, timeBetweenHands=5000) {
     this.isRunning = true;
     this.playerDms = playerDms;
-    this.dealerButton = dealerButton === null ?
+    this.initialPlayer = initialPlayer === null ?
       Math.floor(Math.random() * this.players.length) :
       dealerButton;
 
+    this.deck = new Deck();
+    this.deck.shuffle();
+    this.dealPlayerCards();
+    this.deck.addExplosionsAndShuffle();
+
     rx.Observable.return(true)
-      .flatMap(() => this.playHand()
+      .flatMap(() => this.playGame()
         .flatMap(() => rx.Observable.timer(timeBetweenHands, this.scheduler)))
       .repeat()
       .takeUntil(this.gameEnded)
@@ -82,6 +87,18 @@ class ExplodingKittens {
     return _.filter(this.players, player => player.isInHand);
   }
 
+
+  playGame() {
+    for(player of this.orderedPlayers) {
+      if(thid.orderedPlayers.length == 1) { //player won the game
+
+      }
+      else {
+        this.deferredActionForPlayer(player,)
+      }
+    }
+  }
+
   // Private: Plays a single hand of hold'em. The sequence goes like this:
   // 1. Clear the board and player hands
   // 2. Shuffle the deck and give players their cards
@@ -96,10 +113,11 @@ class ExplodingKittens {
     this.board = [];
     this.playerHands = {};
 
-    this.initializeHand();
+    //this.initializeHand();
     this.deck = new Deck();
     this.deck.shuffle();
     this.dealPlayerCards();
+    this.deck.addExplosionsAndShuffle();
 
     let handEnded = new rx.Subject();
 
@@ -119,7 +137,7 @@ class ExplodingKittens {
   // small blind and big blind indices.
   //
   // Returns nothing
-  initializeHand() {
+ /* initializeHand() {
     for (let player of this.players) {
       player.isInRound = player.isInHand = player.chips > 0;
       player.isAllIn = false;
@@ -131,7 +149,7 @@ class ExplodingKittens {
     
     this.smallBlindIdx = PlayerOrder.getNextPlayerIndex(this.dealerButton, this.players);
     this.bigBlindIdx = PlayerOrder.getNextPlayerIndex(this.smallBlindIdx, this.players);
-  }
+  }*/
 
   // Private: Handles the logic for a round of betting.
   //
@@ -222,7 +240,7 @@ class ExplodingKittens {
   // timeToPause - (Optional) The time to wait before polling, in ms
   //
   // Returns an {Observable} containing the player's action
-  deferredActionForPlayer(player, previousActions, roundEnded, timeToPause=1000) {
+  deferredActionForPlayer(player, previousActions, roundEnded, timeToPause=5000) {
     return rx.Observable.defer(() => {
 
       // Display player position and who's next to act before polling.
@@ -473,26 +491,23 @@ class ExplodingKittens {
   //
   // Returns nothing
   dealPlayerCards() {
-    this.orderedPlayers = PlayerOrder.determine(this.getPlayersInHand(), this.dealerButton, 'deal');
+    this.orderedPlayers = PlayerOrder.determine(this.players, this.initialPlayer);
 
     for (let player of this.orderedPlayers) {
-      let card = this.deck.drawCard();
-      this.playerHands[player.id] = [card];
-    }
-
-    for (let player of this.orderedPlayers) {
-      let card = this.deck.drawCard();
-      this.playerHands[player.id].push(card);
+      for(i = 0; i < 4; i++) {
+        this.playerHands[player.id].push(this.deck.drawCard());
+      }
+      this.playerHands[player.id].push(this.deck.defuses.drawCard())
 
       if (!player.isBot) {
         let dm = this.playerDms[player.id];
         if (!dm) {
           SlackApiRx.getOrOpenDm.subscribe(({dm}) => {
             this.playerDms[player.id] = dm;
-            dm.send(`Your hand is: ${this.playerHands[player.id]}`);
+            dm.send(`Your initial hand is: ${this.playerHands[player.id]}`);
           });
         } else {
-          dm.send(`Your hand is: ${this.playerHands[player.id]}`);
+          dm.send(`Your initial hand is: ${this.playerHands[player.id]}`);
         }
       } else {
         player.holeCards = this.playerHands[player.id];

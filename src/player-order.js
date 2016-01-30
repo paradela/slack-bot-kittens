@@ -11,14 +11,7 @@ module.exports = class PlayerOrder {
   // round - A string describing the round, e.g., 'preflop', 'flop'
   //
   // Returns a new array with the players in sorted order
-  static determine(players, dealerButton, round) {
-    // NB: During the preflop betting round, SB (1) and BB (2) are skipped and
-    // we start with UTG (3). Every other round starts with the SB.
-    let offsetFromButton = round === 'preflop' ? 3 : 1;
-
-    // Calculate the index of the first player to act.
-    let firstToAct = (dealerButton + offsetFromButton) % players.length;
-
+  static determine(players, firstToAct) {
     let orderedPlayers = [];
 
     for (let index = 0; index < players.length; index++) {

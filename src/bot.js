@@ -40,7 +40,7 @@ class Bot {
 
     let disp = new rx.CompositeDisposable();
         
-    disp.add(this.handleDealGameMessages(messages, atMentions));
+    disp.add(this.handleExplodeGameMessages(messages, atMentions));
     disp.add(this.handleConfigMessages(atMentions));
     
     return disp;
@@ -53,9 +53,9 @@ class Bot {
   // atMentions - An {Observable} representing messages directed at the bot
   //
   // Returns a {Disposable} that will end this subscription
-  handleDealGameMessages(messages, atMentions) {
+  handleExplodeGameMessages(messages, atMentions) {
     return atMentions
-      .where(e => e.text && e.text.toLowerCase().match(/\bdeal\b/))
+      .where(e => e.text && e.text.toLowerCase().match(/\bexplode\b/))
       .map(e => this.slack.getChannelGroupOrDMByID(e.channel))
       .where(channel => {
         if (this.isPolling) {

@@ -1,5 +1,6 @@
 const rx = require('rx');
 const _ = require('underscore-plus');
+const Card = require('./card.js');
 
 class PlayerInteraction {
   // Public: Poll players that want to join the game during a specified period
@@ -14,7 +15,7 @@ class PlayerInteraction {
   // Returns an {Observable} that will `onNext` for each player that joins and
   // `onCompleted` when time expires or the max number of players join.
   static pollPotentialPlayers(messages, channel, scheduler=rx.Scheduler.timeout, timeout=30, maxPlayers=10) {
-    let formatMessage = t => `Who wants to play? Respond with 'yes' in this channel in the next ${t} seconds.`;
+    let formatMessage = t => `Who wants to play Exploding Kittens? Respond with 'yes' in this channel in the next ${t} seconds.`;
     let timeExpired = PlayerInteraction.postMessageWithTimeout(channel, formatMessage, scheduler, timeout);
 
     // Look for messages containing the word 'yes' and map them to a unique
@@ -43,8 +44,7 @@ class PlayerInteraction {
   //
   // Returns an {Observable} indicating the action the player took. If time
   // expires, a 'timeout' action is returned.
-  static getActionForPlayer(messages, channel, player, previousActions,
-    scheduler=rx.Scheduler.timeout, timeout=30) {
+  static getActionForPlayer(messages, channel, player, previousActions, scheduler=rx.Scheduler.timeout, timeout=30) {
     let availableActions = PlayerInteraction.getAvailableActions(player, previousActions);
     let formatMessage = t => PlayerInteraction.buildActionMessage(player, availableActions, t);
     
@@ -133,36 +133,25 @@ class PlayerInteraction {
   // previousActions - A map of players to their most recent action
   //
   // Returns an array of strings
-  static getAvailableActions(player, previousActions) {
-    let actions = _.values(previousActions);
-    let betActions = _.filter(actions, a => a.name === 'bet' || a.name === 'raise');
-    let hasBet = betActions.length > 0;
-
+  static getAvailableActions(player) {
     let availableActions = [];
+    let catCards = new Map();
 
-    if (player.hasOption) {
-      availableActions.push('check');
-      availableActions.push('raise');
-    } else if (hasBet) {
-      availableActions.push('call');
-      availableActions.push('raise');
-    } else {
-      availableActions.push('check');
-      availableActions.push('bet');
-    }
-
-    // Prevent players from raising when they don't have enough chips.
-    let raiseIndex = availableActions.indexOf('raise');
-    if (raiseIndex > -1) {
-      let previousWager = player.lastAction ? player.lastAction.amount : 0;
-      let availableChips = player.chips + previousWager;
-      
-      if (_.max(betActions, a => a.amount).amount >= availableChips) {
-        availableActions.splice(raiseIndex, 1);
+    for(let card of player.holeCards) {
+      switch(card.type) {
+        case Card.MomaCatType():
+          var c = 0;
+          if(catCards.has(card.type)) {
+            c = catCards.get(card.type);
+            c++;
+          }
+          catCards.set(card.type, c);
+          break;
+        case Card.DefuseType():
+          break;
       }
     }
 
-    availableActions.push('fold');
     return availableActions;
   }
 
