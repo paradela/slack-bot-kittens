@@ -23,15 +23,9 @@ class ExplodingKittens {
     this.players = players;
     this.scheduler = scheduler;
 
-    this.smallBlind = 1;
-    this.bigBlind = this.smallBlind * 2;
+    this.currentAction = null;
     //this.potManager = new PotManager(this.channel, players, this.smallBlind);
     this.gameEnded = new rx.Subject();
-
-    // Each player starts with 100 big blinds.
-    for (let player of this.players) {
-      player.chips = this.bigBlind * 100;
-    }
   }
 
   // Public: Starts a new game.
@@ -94,7 +88,8 @@ class ExplodingKittens {
 
       }
       else {
-        this.deferredActionForPlayer(player,)
+        this.deferredActionForPlayer(player, null, null, null);
+
       }
     }
   }
@@ -273,25 +268,30 @@ class ExplodingKittens {
   // Returns nothing
   onPlayerAction(player, action, previousActions, roundEnded, postingBlind='') {
     //this.potManager.updatePotForAction(player, action);
-    this.postActionToChannel(player, action, postingBlind);
+    this.currentAction = action;
+    this.postActionToChannel(player, this.currentAction, postingBlind);
+
+    //after channel is notified about the user action, we should wait a bit to give the chance to NOPE the action.
+
+    //TODO: handle nope messages
 
     // Now that the action has been validated, save it for future reference.
     player.lastAction = action;
     previousActions[player.id] = action;
 
     // All of these methods assume that the action is valid.
-    switch (action.name) {
-    case 'fold':
+    switch (this.currentAction.name) {
+    case 'draw':
       this.onPlayerFolded(player, roundEnded);
       break;
-    case 'check':
+    case 'skip':
       this.onPlayerChecked(player, roundEnded);
       break;
-    case 'call':
+    case 'attack':
       this.onPlayerCalled(player, roundEnded);
       break;
-    case 'bet':
-    case 'raise':
+    case 'favor':
+    case 'steel':
       this.onPlayerBet(player, roundEnded);
       break;
     }

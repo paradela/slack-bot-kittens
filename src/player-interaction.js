@@ -65,13 +65,11 @@ class PlayerInteraction {
       .where(action => action !== null)
       .publish();
 
+    // connect() will execute the query to find messages from user.
     playerAction.connect();
     
-    // If the user times out, they will be auto-folded unless they can check.
-    let actionForTimeout = timeExpired.map(() =>
-      availableActions.indexOf('check') > -1 ?
-        { name: 'check' } :
-        { name: 'fold' });
+    // If the user times out, he will draw a card.
+    let actionForTimeout = timeExpired.map(() => { name: 'draw' });
 
     let botAction = player.isBot ?
       player.getAction(availableActions, previousActions) :
@@ -136,17 +134,33 @@ class PlayerInteraction {
   static getAvailableActions(player) {
     let availableActions = [];
     let catCards = new Map();
+    let actions =  new Map();
 
     for(let card of player.holeCards) {
       switch(card.type) {
+        case Card.ButtubaType():
+        case Card.TacocatType():
+        case Card.CatermellonType():
         case Card.MomaCatType():
-          var c = 0;
+          var c = 1;
           if(catCards.has(card.type)) {
-            c = catCards.get(card.type);
-            c++;
+            if(catCards.get(card.type) == 1){
+              availableActions.push('Steel card with ' + card.type + 's');
+            }
+            c = catCards.get(card.type) + 1;
           }
           catCards.set(card.type, c);
           break;
+        case Card.AttackType():
+        case Card.SkipType():
+        case Card.FavorType():
+        case Card.SeeTheFutureType():
+          if(!actions.has(card.type)) {
+            availableActions.push(card.type)
+          }
+          actions.set(card.type, true);
+          break;
+        case Card.NopeType():
         case Card.DefuseType():
           break;
       }
