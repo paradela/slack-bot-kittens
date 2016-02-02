@@ -23,6 +23,7 @@ class ExplodingKittens {
     this.players = players;
     this.scheduler = scheduler;
 
+    this.cardStack = new Array(),
     this.currentAction = null;
     //this.potManager = new PotManager(this.channel, players, this.smallBlind);
     this.gameEnded = new rx.Subject();
@@ -235,7 +236,7 @@ class ExplodingKittens {
   // timeToPause - (Optional) The time to wait before polling, in ms
   //
   // Returns an {Observable} containing the player's action
-  deferredActionForPlayer(player, previousActions, roundEnded, timeToPause=5000) {
+  deferredActionForPlayer(player, previousActions, roundEnded, timeToPause=1000) {
     return rx.Observable.defer(() => {
 
       // Display player position and who's next to act before polling.
@@ -271,30 +272,53 @@ class ExplodingKittens {
     this.currentAction = action;
     this.postActionToChannel(player, this.currentAction, postingBlind);
 
-    //after channel is notified about the user action, we should wait a bit to give the chance to NOPE the action.
-
-    //TODO: handle nope messages
-
     // Now that the action has been validated, save it for future reference.
     player.lastAction = action;
     previousActions[player.id] = action;
 
     // All of these methods assume that the action is valid.
     switch (this.currentAction.name) {
-    case 'draw':
-      this.onPlayerFolded(player, roundEnded);
-      break;
-    case 'skip':
-      this.onPlayerChecked(player, roundEnded);
-      break;
-    case 'attack':
-      this.onPlayerCalled(player, roundEnded);
-      break;
-    case 'favor':
-    case 'steel':
-      this.onPlayerBet(player, roundEnded);
-      break;
+      case 'draw':
+        this.onDrawCard(player, roundEnded);
+        break;
+      case 'skip':
+        this.onSkip(player, roundEnded);
+        break;
+      case 'attack':
+        this.onAttack(player, roundEnded);
+        break;
+      case 'favor':
+        this.onFavor();
+      case 'steel':
+        this.onPlayerBet(player, roundEnded);
+        break;
+      case 'stf':
+        break;
     }
+  }
+
+  onDrawCard(player, roundEnded) {
+    var card = this.deck.drawCard();
+    if(card.type == Card.ExplodingKittenType()) { //handle explosion
+      var isDefused = false;
+      for(let c of player.holeCards) {
+        if(c.type == Card.DefuseType()) {
+          isDefused = true;
+
+          //TODO: Ask user where he wants to place the explosion
+          this.deck.putExplosion(card, 1);
+        }
+      }
+      if(!isDefused) {
+        //TODO: player lost the game
+      }
+    }
+    else {
+      //Player finished his turn
+      player.holeCards.push(card);
+    }
+    //every time a player draws a card, the card stack must be cleared
+    this.cardStack.length = 0;
   }
 
   // Private: If everyone folded out, declare a winner. Otherwise see if this

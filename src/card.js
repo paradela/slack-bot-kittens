@@ -12,10 +12,11 @@ class Card {
     return `${this.rank}`;
   }
 
+  static ExplodingKittenType() { return 'Exploding Kitten';}
   static ExplodingCards(numberPlayers) {
     var cards = [];
     for(i = 0; i < numberPlayers - 1; i++){
-      cards.push(new Card('Exploding Kitten', 'explosion.png'));
+      cards.push(new Card(Card.ExplodingKittenType(), 'explosion.png'));
     }
     return cards;
   }

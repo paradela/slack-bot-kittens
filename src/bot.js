@@ -147,12 +147,20 @@ class Bot {
         channel.send(`${player.name} has decided to quit the game. The game will end after this hand.`);
         game.quit();
       });
+
+    let nopePlayDisp = messages.where(e => e.text && e.text.toLowerCase().match(/\bnope\b/))
+    .takeUntil(game.gameEnded)
+    .subscribe(e => {
+      let player = this.slack.getUerById(e.user);
+      //TODO: call game to mark currentAction as 'noped'.
+    });
     
     return SlackApiRx.openDms(this.slack, players)
       .flatMap(playerDms => rx.Observable.timer(2000)
         .flatMap(() => game.start(playerDms)))
       .do(() => {
         quitGameDisp.dispose();
+        nopePlayDisp.dispose();
         this.isGameRunning = false;
       });
   }

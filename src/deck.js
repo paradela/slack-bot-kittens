@@ -50,6 +50,15 @@ class Deck {
     return this.cards.shift();
   }
 
+  putExplosion(card, index) {
+    index--;
+    if(index >= 0 && index < this.deck.length) {
+      this.deck.splice(index, 0, card);
+      return true;
+    }
+    else false;
+  }
+
   toString() {
     return this.cards.join();
   }
