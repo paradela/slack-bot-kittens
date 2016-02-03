@@ -297,16 +297,22 @@ class ExplodingKittens {
     }
   }
 
+  //Private: Control what happens when a player draws a card from the
+  //pile. If the card is an explosion it is need to check wether the player
+  //has a defuse card to continue the game.
   onDrawCard(player, roundEnded) {
     var card = this.deck.drawCard();
     if(card.type == Card.ExplodingKittenType()) { //handle explosion
       var isDefused = false;
-      for(let c of player.holeCards) {
+      for(var i = 0; i < player.holeCards.length; i++) {
+        var c = player.holeCards[i];
         if(c.type == Card.DefuseType()) {
           isDefused = true;
-
+          //Discard the defuse card
+          player.holeCards.splice(i, 1);
           //TODO: Ask user where he wants to place the explosion
           this.deck.putExplosion(card, 1);
+          break;
         }
       }
       if(!isDefused) {
@@ -319,6 +325,28 @@ class ExplodingKittens {
     }
     //every time a player draws a card, the card stack must be cleared
     this.cardStack.length = 0;
+  }
+
+  onSkip(player, roundEnded) {
+    //control var used to validated that a user has a card for this action
+    var validAction = false;
+    for(var i = 0; i < player.holeCards.length; i++) {
+      var c = player.holeCards[i];
+      if(c.type == Card.SkipType()) {
+        validAction = true;
+        //Discard the defuse card
+        player.holeCards.splice(i, 1);
+        //This is a valid action so the cardStack must be cleared
+        this.cardStack.length = 0;
+        //And the skip card is now on top of cardStack
+        this.cardStack.push(c);
+        //TODO: Once it is a skip, it must now signal to pass the play to the next player
+      }
+    }
+    //player does not have a skip card, he must play another card instead
+    if(!validAction) {
+      //TODO: notify player to play another card.
+    }
   }
 
   // Private: If everyone folded out, declare a winner. Otherwise see if this
