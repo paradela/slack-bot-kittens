@@ -15,7 +15,7 @@ class Card {
   static ExplodingKittenType() { return 'Exploding Kitten';}
   static ExplodingCards(numberPlayers) {
     var cards = [];
-    for(i = 0; i < numberPlayers - 1; i++){
+    for(var i = 0; i < numberPlayers - 1; i++){
       cards.push(new Card(Card.ExplodingKittenType(), 'explosion.png'));
     }
     return cards;
@@ -24,8 +24,8 @@ class Card {
   static DefuseType() { return 'Defuse';}
   static DefuseCards(numberPlayers) {
     var cards = [];
-    for(i = 0; i < numberPlayers; i++){
-      cards.push(new Card(DefuseType(), 'defuse.png'));
+    for(var i = 0; i < numberPlayers; i++){
+      cards.push(new Card(Card.DefuseType(), 'defuse.png'));
     }
     return cards;
   }

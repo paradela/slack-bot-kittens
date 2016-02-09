@@ -1,10 +1,11 @@
 const rx = require('rx');
 const _ = require('underscore-plus');
-const ExplodingKittens = require('./exploding-kittens')
+const ExplosiveKittens = require('./explosive-kittens')
 const Slack = require('slack-client');
 const SlackApiRx = require('./slack-api-rx');
 const MessageHelpers = require('./message-helpers');
 const PlayerInteraction = require('./player-interaction');
+const WeakBot = require('./weak-bot');
 
 
 class Bot {
@@ -134,7 +135,7 @@ class Bot {
     channel.send(`We've got ${players.length} players, let's start the game.`);
     this.isGameRunning = true;
     
-    let game = new ExplodingKittens(this.slack, messages, channel, players);
+    let game = new ExplosiveKittens(this.slack, messages, channel, players);
     _.extend(game, this.gameConfig);
 
     // Listen for messages directed at the bot containing 'quit game.'
@@ -147,21 +148,15 @@ class Bot {
         channel.send(`${player.name} has decided to quit the game. The game will end after this hand.`);
         game.quit();
       });
-
-    let nopePlayDisp = messages.where(e => e.text && e.text.toLowerCase().match(/\bnope\b/))
-    .takeUntil(game.gameEnded)
-    .subscribe(e => {
-      let player = this.slack.getUerById(e.user);
-      //TODO: call game to mark currentAction as 'noped'.
-    });
     
     return SlackApiRx.openDms(this.slack, players)
       .flatMap(playerDms => rx.Observable.timer(2000)
-        .flatMap(() => game.start(playerDms)))
+        .flatMap(() => game.startGame(playerDms)))
       .do(() => {
         quitGameDisp.dispose();
         nopePlayDisp.dispose();
         this.isGameRunning = false;
+        console.log('game ended.')
       });
   }
 
@@ -169,8 +164,8 @@ class Bot {
   //
   // players - The players participating in the game
   addBotPlayers(players) {
-    //let bot1 = new WeakBot('Phil Hellmuth');
-    //players.push(bot1);
+    let bot1 = new WeakBot('Phil Hellmuth');
+    players.push(bot1);
     
     //let bot2 = new AggroBot('Phil Ivey');
     //players.push(bot2);

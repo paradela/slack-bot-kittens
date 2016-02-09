@@ -14,7 +14,7 @@ class PlayerInteraction {
   //
   // Returns an {Observable} that will `onNext` for each player that joins and
   // `onCompleted` when time expires or the max number of players join.
-  static pollPotentialPlayers(messages, channel, scheduler=rx.Scheduler.timeout, timeout=30, maxPlayers=10) {
+  static pollPotentialPlayers(messages, channel, scheduler=rx.Scheduler.timeout, timeout=5/*30*/, maxPlayers=10) {
     let formatMessage = t => `Who wants to play Exploding Kittens? Respond with 'yes' in this channel in the next ${t} seconds.`;
     let timeExpired = PlayerInteraction.postMessageWithTimeout(channel, formatMessage, scheduler, timeout);
 
@@ -131,36 +131,81 @@ class PlayerInteraction {
   // previousActions - A map of players to their most recent action
   //
   // Returns an array of strings
-  static getAvailableActions(player) {
+  static getAvailableActions(player, currentPlayer=true, canNope=false) {
     let availableActions = [];
     let catCards = new Map();
     let actions =  new Map();
 
     for(let card of player.holeCards) {
+      var action = {
+        player : player,
+        type : '',
+        description: ''
+      };
+
       switch(card.type) {
         case Card.ButtubaType():
         case Card.TacocatType():
         case Card.CatermellonType():
         case Card.MomaCatType():
+          if(!currentPlayer) break;
           var c = 1;
           if(catCards.has(card.type)) {
             if(catCards.get(card.type) == 1){
-              availableActions.push('Steel card with ' + card.type + 's');
+              action.type = 'steel';
+              action.description = 'Steel card with ' + card.type + 's';
+              availableActions.push(action);
             }
             c = catCards.get(card.type) + 1;
           }
           catCards.set(card.type, c);
           break;
         case Card.AttackType():
-        case Card.SkipType():
-        case Card.FavorType():
-        case Card.SeeTheFutureType():
+          if(!currentPlayer) break;
           if(!actions.has(card.type)) {
-            availableActions.push(card.type)
+            action.type = 'attack';
+            action.description = 'Skip your play. Next player makes two plays.';
+            availableActions.push(action);
+          }
+          actions.set(card.type, true);
+          break;
+        case Card.SkipType():
+          if(!currentPlayer) break;
+          if(!actions.has(card.type)) {
+            action.type = 'skip';
+            action.description = 'Skip your play.';
+            availableActions.push(action)
+          }
+          actions.set(card.type, true);
+          break;
+        case Card.FavorType():
+          if(!currentPlayer) break;
+          if(!actions.has(card.type)) {
+            action.type = 'favor';
+            action.description = 'Ask a card to any player in the game.';
+            availableActions.push(action);
+          }
+          actions.set(card.type, true);
+          break;
+        case Card.SeeTheFutureType():
+          if(!currentPlayer) break;
+          if(!actions.has(card.type)) {
+            action.type = 'future';
+            action.description = 'Peek the next three cards.';
+            availableActions.push(action);
           }
           actions.set(card.type, true);
           break;
         case Card.NopeType():
+          if(canNope) {
+            if(!actions.has(card.type)) {
+              action.type = 'nope';
+              action.description = 'Nope any card played before by other player.';
+              availableActions.push(action);
+            }
+            actions.set(card.type, true);
+            break;
+          }
         case Card.DefuseType():
           break;
       }
@@ -182,41 +227,12 @@ class PlayerInteraction {
     let input = text.trim().toLowerCase().split(/\s+/);
     if (!input[0]) return null;
 
-    let name = '';
-    let amount = 0;
-
-    switch (input[0]) {
-    case 'c':
-      name = availableActions[0];
-      break;
-    case 'call':
-      name = 'call';
-      break;
-    case 'check':
-      name = 'check';
-      break;
-    case 'f':
-    case 'fold':
-      name = 'fold';
-      break;
-    case 'b':
-    case 'bet':
-      name = 'bet';
-      amount = input[1] ? parseInt(input[1]) : NaN;
-      break;
-    case 'r':
-    case 'raise':
-      name = 'raise';
-      amount = input[1] ? parseInt(input[1]) : NaN;
-      break;
-    default:
-      return null;
+    for (let a of availableActions) {
+      if (input[0] == a.type) {
+        return a;
+      }
     }
-
-    // NB: Unavailable actions are always invalid.
-    return availableActions.indexOf(name) > -1 ?
-      { name: name, amount: amount } :
-      null;
+    return null;
   }
 }
 

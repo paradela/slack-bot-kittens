@@ -82,17 +82,45 @@ class ExplodingKittens {
     return _.filter(this.players, player => player.isInHand);
   }
 
+  countPlayersInGame() {
+    return _.filter(this.players, player => player.isInGame).length;
+  }
+
 
   playGame() {
-    for(player of this.orderedPlayers) {
-      if(thid.orderedPlayers.length == 1) { //player won the game
+    return rx.Observable.defer(() => {
+      for(var i = 0; i < this.orderedPlayers.length; i++) {
+        if(this.countPlayersInGame() == 1) { //there's a winner
+          //TODO: find the winner
+        }
 
-      }
-      else {
+        var player = this.orderedPlayers[i];
+
+        //subscribe for nopes.
+        let nopeObs = new rx.Subject();
+        let nopePlayDisp = this.messages.where(e => e.text && e.text.toLowerCase().match(/\bnope\b/))
+          .takeUntil(nopeObs)
+          .subscribe(e => {
+            let player = this.slack.getUerById(e.user);
+            //TODO: call game to mark currentAction as 'noped'.
+            //step 1: check if player has a nope card
+
+            //step 2: check if there's any action in the card stack that can be noped.
+            if(this.cardStack.length > 0) {
+
+              //step 3: stop this dispatcher
+              nopeObs.onCompleted();
+            }
+
+
+          });
+        //this.deferredActionForPlayer(player, null, null, nopeObs);
         this.deferredActionForPlayer(player, null, null, null);
 
+        // Round Robin
+        if(i >= this.orderedPlayers.length) i = 0;
       }
-    }
+    });
   }
 
   // Private: Plays a single hand of hold'em. The sequence goes like this:
@@ -546,7 +574,8 @@ class ExplodingKittens {
     this.orderedPlayers = PlayerOrder.determine(this.players, this.initialPlayer);
 
     for (let player of this.orderedPlayers) {
-      for(i = 0; i < 4; i++) {
+      player.isInGame = true;
+      for(var i = 0; i < 4; i++) {
         this.playerHands[player.id].push(this.deck.drawCard());
       }
       this.playerHands[player.id].push(this.deck.defuses.drawCard())

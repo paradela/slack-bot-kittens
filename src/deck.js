@@ -6,17 +6,17 @@ class Deck {
     this.explosions = [];
     this.deck = [];
 
-    this.defuses.push(Card.DefuseCards(numberPlayers));
-    this.explosions.push(Card.ExplodingCards(numberPlayers));
-    this.deck.push(Card.CatermellonCards(numberPlayers));
-    this.deck.push(Card.MomaCatCards(numberPlayers));
-    this.deck.push(Card.ButtubaCards(numberPlayers));
-    this.deck.push(Card.TacocatCards(numberPlayers));
-    this.deck.push(Card.SkipCards(numberPlayers));
-    this.deck.push(Card.NopeCards(numberPlayers));
-    this.deck.push(Card.AttackCards(numberPlayers));
-    this.deck.push(Card.SeeTheFutureCards(numberPlayers));
-    this.deck.push(Card.FavorCards(numberPlayers));
+    this.defuses = Card.DefuseCards(numberPlayers);
+    this.explosions = Card.ExplodingCards(numberPlayers);
+    Card.CatermellonCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.MomaCatCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.ButtubaCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.TacocatCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.SkipCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.NopeCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.AttackCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.SeeTheFutureCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.FavorCards(numberPlayers).forEach(e => this.deck.push(e));
   }
 
   // Public: Performs a proper Fisher-Yates shuffle.
@@ -40,14 +40,18 @@ class Deck {
   }
 
   addExplosionsAndShuffle(){
-    for(i = 0; i < deck.length; i++) {
+    for(var i = 0; i < this.deck.length; i++) {
       this.deck.push(this.explosions.pop());
     }
     this.shuffle();
   }
 
   drawCard() {
-    return this.cards.shift();
+    return this.deck.shift();
+  }
+
+  drawDefuse() {
+    return this.defuses.shift();
   }
 
   putExplosion(card, index) {
@@ -60,11 +64,11 @@ class Deck {
   }
 
   toString() {
-    return this.cards.join();
+    return this.deck.join();
   }
 
   toAsciiString() {
-    return this.cards.map(card => card.toAsciiString()).join();
+    return this.deck.map(card => card.toAsciiString()).join();
   }
 }
 
