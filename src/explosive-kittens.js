@@ -3,6 +3,7 @@
  */
 const rx = require('rx');
 const _ = require('underscore-plus');
+var util = require('util');
 
 const Deck = require('./deck');
 const SlackApiRx = require('./slack-api-rx');
@@ -36,16 +37,17 @@ class ExplosiveKittens {
       initialPlayer;
 
     this.playerHands = {};
-    this.currentPlayer = initialPlayer;
+    this.currentPlayer = this.initialPlayer;
 
-    this.deck = new Deck();
+    this.deck = new Deck(this.players.length);
     this.deck.shuffle();
     this.dealPlayerCards();
     this.deck.addExplosionsAndShuffle();
 
     // Look for text that conforms to a player action.
     let playerAction = this.messages
-      .map(e => PlayerInteraction.actionFromMessage(e.text, this.getActionsForPlayer(this.slack.getUserByID(e.user))))
+      .map(e => PlayerInteraction.actionFromMessage(e.text,
+        this.getActionsForPlayer(this.getPlayerById(this.slack.getUserByID(e.user).id))))
       .where(action => action !== null)
       .takeUntil(this.gameEnded)
       .subscribe(action => {
@@ -60,7 +62,15 @@ class ExplosiveKittens {
     return this.gameEnded;
   }
 
+  getPlayerById(id) {
+    for(var u of this.players) {
+      if(u.id == id) return u;
+    }
+    return null;
+  }
+
   getActionsForPlayer(player) {
+    //console.log(util.inspect(player, false, null));
     return PlayerInteraction.getAvailableActions(player, (player.name == this.currentPlayer.name), this.playerCanNope(player));
   }
 
@@ -96,6 +106,7 @@ class ExplosiveKittens {
         this.playerHands[player.id].push(this.deck.drawCard());
       }
       this.playerHands[player.id].push(this.deck.drawDefuse());
+      player.holeCards = this.playerHands[player.id];
 
       if (!player.isBot) {
         let dm = this.playerDms[player.id];

@@ -1,6 +1,7 @@
 const rx = require('rx');
 const _ = require('underscore-plus');
 const Card = require('./card.js');
+var util = require('util');
 
 class PlayerInteraction {
   // Public: Poll players that want to join the game during a specified period
@@ -142,6 +143,8 @@ class PlayerInteraction {
         type : '',
         description: ''
       };
+
+      console.log(util.inspect(card, false, null));
 
       switch(card.type) {
         case Card.ButtubaType():

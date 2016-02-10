@@ -40,7 +40,8 @@ class Deck {
   }
 
   addExplosionsAndShuffle(){
-    for(var i = 0; i < this.deck.length; i++) {
+    var explSize = this.explosions.length;
+    for(var i = 0; i < explSize; i++) {
       this.deck.push(this.explosions.pop());
     }
     this.shuffle();
