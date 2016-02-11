@@ -29,12 +29,11 @@ class ExplosiveKittens {
     this.stopAction = new rx.Subject();
   }
 
-  startGame(playerDms, initialPlayer=null) {
+  startGame(playerDms) {
     this.isRunning = true;
     this.playerDms = playerDms;
-    this.initialPlayer = initialPlayer === null ?
-      Math.floor(Math.random() * this.players.length) :
-      initialPlayer;
+    this.initialPlayer = this.chooseFirstPlayer();
+    console.log(util.inspect(this.initialPlayer, false, null));
 
     this.playerHands = {};
     this.currentPlayer = this.initialPlayer;
@@ -51,6 +50,7 @@ class ExplosiveKittens {
       .where(action => action !== null)
       .takeUntil(this.gameEnded)
       .subscribe(action => {
+        console.log('cenas fixes');
         if(action.type != 'nope') {
           this.actionStack.length = 0;
         }
@@ -62,6 +62,11 @@ class ExplosiveKittens {
     return this.gameEnded;
   }
 
+  chooseFirstPlayer() {
+    let i = Math.floor(Math.random() * this.players.length);
+    return this.players[i];
+  }
+
   getPlayerById(id) {
     for(var u of this.players) {
       if(u.id == id) return u;
@@ -70,7 +75,7 @@ class ExplosiveKittens {
   }
 
   getActionsForPlayer(player) {
-    //console.log(util.inspect(player, false, null));
+    console.log('getActionsForPlayer: ' + util.inspect(player, false, null));
     return PlayerInteraction.getAvailableActions(player, (player.name == this.currentPlayer.name), this.playerCanNope(player));
   }
 
@@ -84,7 +89,7 @@ class ExplosiveKittens {
 
   //This
   evaluatePlayerAction(stopAction) {
-    console.log('action: ' + this.actionStack.pop());
+    console.log('evaluatePlayerAction: ' + util.inspect(this.actionStack.pop(), false, null));
 
     this.gameEnded.onNext(true);
   }
@@ -95,11 +100,11 @@ class ExplosiveKittens {
   //
   // Returns nothing
   dealPlayerCards() {
-    this.orderedPlayers = PlayerOrder.determine(this.players, this.initialPlayer);
-
+    let firstToActIdx = this.players.indexOf(this.initialPlayer);
+    this.orderedPlayers = PlayerOrder.determine(this.players, firstToActIdx);
+    console.log('dealPlayerCards: ' + util.inspect(this.orderedPlayers, false, null));
     for (let player of this.orderedPlayers) {
-      player.isInGame = true;
-
+      console.log('dealPlayerCards: ' + util.inspect(player, false, null));
       this.playerHands[player.id] = new Array();
 
       for(var i = 0; i < 4; i++) {

@@ -107,7 +107,13 @@ class Bot {
         let user = this.slack.getUserByID(id);
         channel.send(`${user.name} has joined the game.`);
         
-        players.push({id: user.id, name: user.name});
+        players.push(
+          {
+            id: user.id,
+            name: user.name,
+            isInGame : true
+          }
+        );
         return players;
       }, [])
       .flatMap(players => {
@@ -154,7 +160,6 @@ class Bot {
         .flatMap(() => game.startGame(playerDms)))
       .do(() => {
         quitGameDisp.dispose();
-        nopePlayDisp.dispose();
         this.isGameRunning = false;
         console.log('game ended.')
       });

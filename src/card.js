@@ -29,7 +29,6 @@ class Card {
     for(var i = 0; i < numberPlayers; i++){
       cards.push(new Card(Card.DefuseType(), 'defuse.png'));
     }
-    console.log(util.inspect(cards, false, null));
     return cards;
   }
 

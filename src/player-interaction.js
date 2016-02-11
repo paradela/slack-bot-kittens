@@ -137,14 +137,21 @@ class PlayerInteraction {
     let catCards = new Map();
     let actions =  new Map();
 
+    if(currentPlayer) {
+      var action = {
+        player : player,
+        type : 'draw',
+        description : 'Draw one card from the deck.'
+      }
+      availableActions.push(action);
+    }
+
     for(let card of player.holeCards) {
       var action = {
         player : player,
         type : '',
         description: ''
       };
-
-      console.log(util.inspect(card, false, null));
 
       switch(card.type) {
         case Card.ButtubaType():
@@ -225,6 +232,7 @@ class PlayerInteraction {
   // Returns an object representing the action, with keys for the name and
   // bet amount, or null if the input was invalid.
   static actionFromMessage(text, availableActions) {
+    console.log('actionFromMessage: ' + util.inspect(availableActions, false, null));
     if (!text) return null;
 
     let input = text.trim().toLowerCase().split(/\s+/);
