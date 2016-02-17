@@ -45,10 +45,9 @@ class PlayerInteraction {
   //
   // Returns an {Observable} indicating the action the player took. If time
   // expires, a 'timeout' action is returned.
-  static getActionForPlayer(messages, channel, player, previousActions, scheduler=rx.Scheduler.timeout, timeout=30) {
-    let availableActions = PlayerInteraction.getAvailableActions(player, previousActions);
+  static getActionForPlayer(messages, channel, player, availableActions, stopAction, scheduler=rx.Scheduler.timeout, timeout=30) {
     let formatMessage = t => PlayerInteraction.buildActionMessage(player, availableActions, t);
-    
+
     let timeExpired = null;
     let expiredDisp = null;
     if (timeout > 0) {
@@ -73,12 +72,12 @@ class PlayerInteraction {
     let actionForTimeout = timeExpired.map(() => { name: 'draw' });
 
     let botAction = player.isBot ?
-      player.getAction(availableActions, previousActions) :
+      player.getAction(availableActions) :
       rx.Observable.never();
 
     // NB: Take the first result from the player action, the timeout, and a bot
     // action (only applicable to bots).
-    return rx.Observable.merge(playerAction, actionForTimeout, botAction)
+    return rx.Observable.merge(playerAction, actionForTimeout, botAction, stopAction)
       .take(1)
       .do(() => expiredDisp.dispose());
   }
@@ -115,7 +114,7 @@ class PlayerInteraction {
   static buildActionMessage(player, availableActions, timeRemaining) {
     let message = `${player.name}, it's your turn. Respond with:\n`;
     for (let action of availableActions) {
-      message += `*(${action.charAt(0).toUpperCase()})${action.slice(1)}*\t`;
+      message += `*(${action.type.charAt(0).toUpperCase()})${action.type.slice(1)}*\t`;
     }
     
     if (timeRemaining > 0) {
@@ -154,10 +153,11 @@ class PlayerInteraction {
       };
 
       switch(card.type) {
-        case Card.ButtubaType():
+        case Card.BeardedCatType():
         case Card.TacocatType():
         case Card.CatermellonType():
-        case Card.MomaCatType():
+        case Card.MommaCatType():
+        case Card.RainbowCatType():
           if(!currentPlayer) break;
           var c = 1;
           if(catCards.has(card.type)) {
@@ -232,7 +232,7 @@ class PlayerInteraction {
   // Returns an object representing the action, with keys for the name and
   // bet amount, or null if the input was invalid.
   static actionFromMessage(text, availableActions) {
-    console.log('actionFromMessage: ' + util.inspect(availableActions, false, null));
+    //console.log('actionFromMessage: ' + util.inspect(availableActions, false, null));
     if (!text) return null;
 
     let input = text.trim().toLowerCase().split(/\s+/);

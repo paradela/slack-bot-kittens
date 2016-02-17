@@ -9,9 +9,10 @@ class Deck {
     this.defuses = Card.DefuseCards(numberPlayers);
     this.explosions = Card.ExplodingCards(numberPlayers);
     Card.CatermellonCards(numberPlayers).forEach(e => this.deck.push(e));
-    Card.MomaCatCards(numberPlayers).forEach(e => this.deck.push(e));
-    Card.ButtubaCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.MommaCatCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.BeardedCatCards(numberPlayers).forEach(e => this.deck.push(e));
     Card.TacocatCards(numberPlayers).forEach(e => this.deck.push(e));
+    Card.RainbowCatCards(numberPlayers).forEach(e => this.deck.push(e));
     Card.SkipCards(numberPlayers).forEach(e => this.deck.push(e));
     Card.NopeCards(numberPlayers).forEach(e => this.deck.push(e));
     Card.AttackCards(numberPlayers).forEach(e => this.deck.push(e));

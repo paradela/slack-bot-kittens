@@ -44,6 +44,16 @@ class ExplosiveKittens {
     this.dealPlayerCards();
     this.deck.addExplosionsAndShuffle();
 
+    //TODO: notify players of who's the first player to make a move.
+    this.sendMessageToAll(`${this.currentPlayer.name} is the first one. Good luck! :explodingkittens:`);
+
+    let firstActions = PlayerInteraction.buildActionMessage(
+      this.currentPlayer,
+      this.getActionsForPlayer(this.currentPlayer),
+      0);
+
+    this.sendMessageToPlayer(this.currentPlayer, firstActions);
+
     // Look for text that conforms to a player action.
     let playerAction = this.messages
       .map(e => PlayerInteraction.actionFromMessage(e.text,
@@ -51,13 +61,37 @@ class ExplosiveKittens {
       .where(action => action !== null)
       .takeUntil(this.gameEnded)
       .subscribe(action => {
-        console.log('cenas fixes');
-        if(action.type != 'nope') {
+        /*if(action.type != 'nope') {
           this.actionStack.length = 0;
-        }
+        }*/
         this.actionStack.push(action);
         //send new action to game engine to evaluation
-        this.evaluatePlayerAction(this.stopAction);
+        let nextPlayer = this.evaluatePlayerAction(this.stopAction);
+        this.currentPlayer = nextPlayer;
+        
+        if(nextPlayer.isBot) {
+          let draw = {
+            type: 'draw',
+            player: nextPlayer,
+            description: 'blah'
+          };
+          let actions = [draw];//this.getActionsForPlayer(nextPlayer);
+          console.log('botActions: ' + util.inspect(actions, false, null));
+          this.actionStack.push(nextPlayer.getAction(actions));
+          nextPlayer = this.evaluatePlayerAction(this.stopAction);
+        }
+        this.currentPlayer = nextPlayer;
+
+        console.log('currentPlayer: ' + util.inspect(this.currentPlayer, false, null));
+
+        //TODO: notify players of who's the next player to make a move
+        let availableActions = PlayerInteraction.buildActionMessage(
+          this.currentPlayer,
+          this.getActionsForPlayer(this.currentPlayer),
+          0);
+
+        this.sendMessageToPlayer(this.currentPlayer, availableActions);
+
       });
 
     return this.gameEnded;
@@ -116,9 +150,14 @@ class ExplosiveKittens {
 
     switch(action.type){
       case 'draw':
-        this.onDrawCard(action.player);
+        this.onDrawCard(action);
         break;
       case 'skip':
+        this.onSkip(action);
+        break;
+      case 'attack':
+        break;
+      case 'favor':
         break;
       case 'steel':
         break;
@@ -128,7 +167,60 @@ class ExplosiveKittens {
         break;
     }
 
-    //this.gameEnded.onNext(true);
+
+    let nextPlayer = this.evaluateStack();
+    console.log('evaluateStack: ' + util.inspect(nextPlayer, false, null));
+    if(nextPlayer == null)
+      nextPlayer = this.evaluateCurrentPlayer();
+    console.log('evaluateCurrentPlayer: ' + util.inspect(nextPlayer, false, null));
+    return nextPlayer;
+  }
+
+  evaluateCurrentPlayer() {
+    let playersInGame = 0;
+    let nextPlayer = null;
+    let currentPlayerIndex = this.players.indexOf(this.currentPlayer);
+
+    for(let i = currentPlayerIndex + 1; i < this.players.length; i++) {
+      var player = this.players[i];
+      console.log('NextPlayer1: ' + util.inspect(player, false, null));
+      if(player.isInGame) {
+        playersInGame++;
+        if(nextPlayer == null) {
+          nextPlayer = player;
+          console.log('NextPlayer1: ' + util.inspect(nextPlayer, false, null));
+        }
+      }
+    }
+    for(let i = 0; i <= currentPlayerIndex; i++) {
+      var player = this.players[i];
+      console.log('NextPlayer2: ' + util.inspect(player, false, null));
+      if(player.isInGame) {
+        playersInGame++;
+        if(nextPlayer == null) {
+          nextPlayer = player;
+          console.log('NextPlayer2: ' + util.inspect(nextPlayer, false, null));
+        }
+      }
+    }
+
+    if(playersInGame == 1) {
+      //currentPlayer won the game
+      this.gameEnded.onNext(nextPlayer);
+    }
+
+    return nextPlayer;
+  }
+
+  evaluateStack() {
+    if(this.actionStack.length > 0) {
+      if(this.actionStack.length % 2) { //is even
+        //initial action has been noped, and the original player needs to play again.
+        return this.actionStack[0].player;
+      }
+    }
+    //can't find the next player from the action stack
+    return null;
   }
 
   // Private: Deals hole cards to each player in the game. To communicate this
@@ -138,22 +230,19 @@ class ExplosiveKittens {
   // Returns nothing
   dealPlayerCards() {
     let firstToActIdx = this.players.indexOf(this.initialPlayer);
-    this.orderedPlayers = PlayerOrder.determine(this.players, firstToActIdx);
+    this.orderedPlayers = this.players;//PlayerOrder.determine(this.players, firstToActIdx);
     console.log('dealPlayerCards: ' + util.inspect(this.orderedPlayers, false, null));
     for (let player of this.orderedPlayers) {
-      console.log('dealPlayerCards: ' + util.inspect(player, false, null));
-      this.playerHands[player.id] = new Array();
+      player.holeCards = new Array();
 
       for(var i = 0; i < 4; i++) {
-        this.playerHands[player.id].push(this.deck.drawCard());
+        player.holeCards.push(this.deck.drawCard());
       }
-      this.playerHands[player.id].push(this.deck.drawDefuse());
-      player.holeCards = this.playerHands[player.id];
+      player.holeCards.push(this.deck.drawDefuse());
 
+      console.log('dealPlayerCards: ' + util.inspect(player, false, null));
       if (!player.isBot) {
         this.sendMessageToPlayer(player, `Your cards: ${player.holeCards}`);
-      } else {
-        player.holeCards = this.playerHands[player.id];
       }
     }
   }
@@ -184,16 +273,17 @@ class ExplosiveKittens {
   }
 
   notifyDrawedCard(currentPlayer, card) {
-    this.sendMessageToPlayer(currentPlayer, `:explodingkittens: You picked up a: ${card.type}`);
+    this.sendMessageToPlayer(currentPlayer, `You picked up a: ${card}`);
     //If it is an explosion, notify all the others
     if(card.type == Card.ExplodingKittenType()) {
       this.sendMessageToAll(`${currentPlayer.name} picked up an Explosion... Poor guy :explodingkittens:`, [currentPlayer]);
     }
   }
 
-  onDrawCard(player) {
+  onDrawCard(action) {
     //Draw one card from the deck
     var card = this.deck.drawCard();
+    let player = action.player;
 
     this.notifyDrawedCard(player, card);
 
@@ -208,7 +298,7 @@ class ExplosiveKittens {
           isDefused = true;
           //Discard the defuse card
           player.holeCards.splice(i, 1);
-          //TODO: Ask user where he wants to place the explosion
+          //TODO: get explosion position
           this.deck.putExplosion(card, 1);
           break;
         }
@@ -228,26 +318,29 @@ class ExplosiveKittens {
     this.actionStack.length = 0;
   }
 
-  onSkip(player) {
-    //control var used to validated that a user has a card for this action
-    var validAction = false;
+  onSkip(action) {
+    let player = action.player;
+
     for(var i = 0; i < player.holeCards.length; i++) {
       var c = player.holeCards[i];
       if(c.type == Card.SkipType()) {
-        validAction = true;
-        //Discard the defuse card
         player.holeCards.splice(i, 1);
         //This is a valid action so the cardStack must be cleared
-        this.cardStack.length = 0;
-        //And the skip card is now on top of cardStack
-        this.cardStack.push(c);
-        //TODO: Once it is a skip, it must now signal to pass the play to the next player
+        this.actionStack.length = 0;
+        //And last action must stay on top
+        this.actionStack.push(action);
       }
     }
-    //player does not have a skip card, he must play another card instead
-    if(!validAction) {
-      //TODO: notify player to play another card.
-    }
+  }
+
+  deferredActionForPlayer(player, stopAction) {
+    return rx.Observable.defer(() => {
+      let actions = this.getActionsForPlayer(player);
+
+      return PlayerInteraction.getActionForPlayer(this.messages, this.channel,
+        player, actions, stopAction, this.scheduler, this.timeout)
+        .do(action => this.onPlayerAction(player, action,  roundEnded));
+    });
   }
 
 }

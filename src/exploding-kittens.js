@@ -295,7 +295,7 @@ class ExplodingKittens {
   // postingBlind - (Optional) String describing the blind, or empty
   //
   // Returns nothing
-  onPlayerAction(player, action, previousActions, roundEnded, postingBlind='') {
+  onPlayerAction(player, action, stopAction, postingBlind='') {
     //this.potManager.updatePotForAction(player, action);
     this.currentAction = action;
     this.postActionToChannel(player, this.currentAction, postingBlind);
@@ -307,13 +307,13 @@ class ExplodingKittens {
     // All of these methods assume that the action is valid.
     switch (this.currentAction.name) {
       case 'draw':
-        this.onDrawCard(player, roundEnded);
+        this.onDrawCard(player);
         break;
       case 'skip':
-        this.onSkip(player, roundEnded);
+        this.onSkip(player);
         break;
       case 'attack':
-        this.onAttack(player, roundEnded);
+        this.onAttack(player);
         break;
       case 'favor':
         this.onFavor();
